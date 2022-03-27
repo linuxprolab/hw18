@@ -1,0 +1,170 @@
+---
+
+- hosts: all
+  become: yes
+  tasks:
+    - name: Set up inetRouter
+      block:
+        - name: install iptables
+          yum:
+            name:
+              - iptables
+              - iptables-services
+            state: present
+            update_cache: true
+        - name: copy iptables config
+          template:
+            src: iptables
+            dest: /etc/sysconfig/iptables
+            owner: root
+            group: root
+            mode: 0600
+        - name: start and enable iptables service
+          service:
+            name: iptables
+            state: restarted
+            enabled: true
+        - name: set up routes on inetRouter eth1
+          template:
+            src: inetRouter_route_eth1.j2
+            dest: /etc/sysconfig/network-scripts/route-eth1
+            owner: root
+            group: root
+            mode: 0644
+          notify: restart network
+        - name: set up forward packages on router
+          sysctl:
+            name: net.ipv4.conf.all.forwarding
+            value: '1'
+            state: present
+            sysctl_file: /etc/sysctl.conf
+            ignoreerrors: yes
+            reload: yes
+      when: ansible_hostname == "inetRouter"
+    - name: Set up centralRouter
+      block:
+        - name: disable default route
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+          notify: restart network
+        - name: add default gateway for centralRouter
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.255.1
+          notify: restart network
+        - name: set up routes on centralRouter eth5
+          template:
+            src: centralRouter_route_eth5.j2
+            dest: /etc/sysconfig/network-scripts/route-eth5
+            owner: root
+            group: root
+            mode: 0644
+          notify: restart network
+        - name: set up routes on centralRouter eth6
+          template:
+            src: centralRouter_route_eth6.j2
+            dest: /etc/sysconfig/network-scripts/route-eth6
+            owner: root
+            group: root
+            mode: 0644
+          notify: restart network
+        - name: set up forward packages on router
+          sysctl:
+            name: net.ipv4.conf.all.forwarding
+            value: '1'
+            state: present
+            sysctl_file: /etc/sysctl.conf
+            ignoreerrors: yes
+            reload: yes
+      when: ansible_hostname == "centralRouter"
+    - name: Set up office1Router
+      block:
+        - name: disable default route
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+          notify: restart network
+        - name: add default gateway for office1Server
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.255.9
+          notify: restart network
+        - name: set up forward packages on router
+          sysctl:
+            name: net.ipv4.conf.all.forwarding
+            value: '1'
+            state: present
+            sysctl_file: /etc/sysctl.conf
+            ignoreerrors: yes
+            reload: yes
+      when: ansible_hostname == "office1Router"
+    - name: Set up office2Router
+      block:
+        - name: disable default route
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+          notify: restart network
+        - name: add default gateway for office2Server
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.255.5
+          notify: restart network
+        - name: set up forward packages on router
+          sysctl:
+            name: net.ipv4.conf.all.forwarding
+            value: '1'
+            state: present
+            sysctl_file: /etc/sysctl.conf
+            ignoreerrors: yes
+            reload: yes
+      when: ansible_hostname == "office2Router"
+
+    - name: Set up centralServer
+      block:
+        - name: disable default route
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+          notify: restart network
+        - name: add default gateway for centralServer
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.0.1
+          notify: restart network
+      when: ansible_hostname == "centralServer"
+
+    - name: Set up office1Server
+      block:
+        - name: disable default route
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+          notify: restart network
+        - name: add default gateway for office1Server
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.2.129
+          notify: restart network
+      when: ansible_hostname == "office1Server"
+
+    - name: Set up office2Server
+      block:
+        - name: disable default route
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth0
+            line: DEFROUTE=no
+          notify: restart network
+        - name: add default gateway for office2Server
+          lineinfile:
+            dest: /etc/sysconfig/network-scripts/ifcfg-eth1
+            line: GATEWAY=192.168.1.1
+          notify: restart network
+      when: ansible_hostname == "office2Server"
+  handlers:
+    - name: restart network
+      service: 
+        name: network
+        state: restarted
+
