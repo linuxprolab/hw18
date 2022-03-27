@@ -56,7 +56,7 @@ Office2----/
 
 ## Выполнение
 Практическая часть выполнена (vagrant + ansible).
-Чтобы запустить стед:
+Чтобы запустить стенд:
 ```
 git clone https://github.com/linuxprolab/hw18
 vagrant up
